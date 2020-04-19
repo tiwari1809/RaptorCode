@@ -4,57 +4,66 @@ import random
 from scipy import *
 from random import choices
 
-def raptorDistribution(N):
-	epsilon = 2.0/3.0 #for N=10k imput symbols
+def LDPCMatrix():
 
+
+
+def LTCodeDistribution(N):
+	epsilon = 2.0/3.0 #for k=10,000 input symbols
 	mhu= (2.0*epsilon + epsilon*epsilon)/4.0 # mhu = eps/2 + (eps/2)^2
-
 	D=10 #max-degree=upperBound((4*(1+eps))/eps) 
-
 
 	#defining coefficients of x^i
 	probabilities = [0, mhu/(mhu+1)]
-	probabilities += [1.0/((i)*(i-1)) for i in range (2,D)]
-	probabilities+=[1.0/D]
+	probabilities += [1.0/(mhu+1)*((i)*(i-1)) for i in range (2,D)]
+	probabilities+=[1.0/(mhu+1)*D]
 	probabilities += [0 for i in range (D,N-1)]
 
 	return probabilities
 
-
+#returns the value d for a block i.e degree for any block
 def getDegrees(N,c):
-	probabilities= raptorDistribution(N)
+	probabilities= LTCodeDistribution(N)
 
 	blocks = [i for i in range(N)]
 	#c=droplet quantity
 	#N=k+p
 	return choices(blocks, weights=probabilities, k=c)
 
+
 class codedBlockStruct: 
 	def __init__(self, degree, neighbours, flag,data): #header might be needed in future
 		self.degree=degree
 		self.neighbours=neighbours
-		self.flag=0
-		self.data=data
-		
+		self.flag=0 #checks maliciousness of a block
+		# self.data=data
+
+#returns indexes for a given block provided degree=d
 def getIndex(deg,blocksN):
 	random.seed(deg)
 	indexes= random.choices(range(blocksN), k=deg)
 	return indexes
 
-def encoder(blocks):
+def encoder():
+	N=12500.0
+	c=25.0 #for starge saving = 500
 	deg = getDegrees(N,c)
+	print "deg",deg 
 	codedBlocks=[]
 	for i in range(c):
 		indexes=getIndex(deg)
+		print "index",indexes
 		codedBlock.degree=deg
 		codedBlock.neighbours=indexes
-		codedBlock.data=blocks[indexes[0]]
-		for j in range(1,deg):
-			codedBlock.data= codedBlock.data^blocks[j]
+		# codedBlock.data=blocks[indexes[0]]
+		# for j in range(1,deg):
+		# 	codedBlock.data= codedBlock.data^blocks[j]
 
-		codedBlocks += codedBlock
+		# codedBlocks += codedBlock
 
 	return codedBlocks
+encoder()
+
 def removeDegree(block, codedBlocks):
 	for codedBlock in codedBlocks:
 		for neighbour in codedBlock.neighbours:
