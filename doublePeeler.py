@@ -7,20 +7,29 @@ from random import choices
 #output to be stored at nodes	
 codedBlocks=[]
 
-#PC matrix is of dimension (N-k)x(N)
-#we will store positions of 1's
-#N-k = No. of parity eqautions
-#k = input symbols 
-#d = check nodes degree which is constant
-def LDPCMatrix(N,k,d):
+	
+##############PC MATRIX########################
+#PC matrix is of dimension (N-k)x(N) in standard form it is stored as [P|I],
+#Where P is of dimensions (N-k)x(k) and I is identity matrix of (N-k)x(N-k).
+#We store positions of 1's in PC matrix.
+#First entry of each row in PC matrix represents row number, 
+#thereafter each number represesnts the block identity used, 
+#the last one is fixed(different for each row) as it comes through I.
+###############################################
+
+#N-k = No. of parity eqautions.
+#k = input symbols.
+#d = check node's degree, which is constant.
+
+def LDPCMatrix(N,k,d,PCMatrix):
 	SumC=[0]*(k)
 	SumR=[0]*(N-k)
 	count1=0
 	count2=0
-	PCMatrix=[]
 	index=[i for i in range(0,k)]
+	IstartCoeff=k #column number from where Idendity matrix starts
 	for i in range (0,N-k):
-		# print(i, end=" ")
+		PCColumn=[i]
 		for j in range (0, d-1):
 			flag=1
 			while(flag==1):
@@ -38,14 +47,17 @@ def LDPCMatrix(N,k,d):
 				# 	count2+=1
 				# 	if(count2>((N-k)/5)*3):
 				# 		flag=1
-			PCMatrix+=[i,a]
+			PCColumn+=[a]
 			SumC[a]+=1
 			SumR[i]+=1
-		
-	for i in range(0,len(SumR)):
-		print(SumR[i], end=" ")
-	
-LDPCMatrix(12500, 10000, 8)
+		PCColumn+=[IstartCoeff]
+		IstartCoeff+=1
+		PCMatrix+=[PCColumn]
+	# for i in range(0,len(SumR)):
+	# 	print(SumR[i], end=" ")
+	# for i in range(0,len(PCMatrix)):
+	# 	print(PCMatrix[i])
+
 
 def LTCodeDistribution(N):
 	epsilon = 2.0/3.0 #for k=10,000 input symbols
@@ -95,11 +107,24 @@ def getIndex(deg,blocksN):
 def encoder():
 	N=12500.0
 	c=10.0 #for starge saving = 500
+	
+	#######LDPC Encoder.
+	PCMatrix=[]
+	LDPCMatrix(12500, 10000, 8,PCMatrix)
+	IntermediateBlocks=[]
+	for i in range (0,len(PCMatrix)):
+		IntermediateBlocks+=[PCMatrix[i]]
+
+	print(IntermediateBlocks)
+
+	#########LT Encoder
+	
+	#Each index i here represents index from intermediate blocks + k original blocks
 	deg = getDegrees(N,c)
-	print ("deg",deg, "length", len(deg)) 
+	# print ("deg",deg, "length", len(deg)) 
 	for i in range(int(c)):
 		indexes=getIndex(deg[i],12500)
-		print ("index",indexes)
+		# print ("index",indexes)
 		codedBlock=codedBlockStruct(deg[i],indexes,0)
 		# codedBlock.data=blocks[indexes[0]]
 		# for j in range(1,deg):
@@ -108,7 +133,7 @@ def encoder():
 		# codedBlocks += codedBlock
 
 	return codedBlocks
-# encoder()
+encoder()
 
 def removeDegree(block, codedBlocks):
 	for codedBlock in codedBlocks:
