@@ -3,6 +3,7 @@ import math
 import random
 # from scipy import *
 from random import choices
+import csv
 
 #output to be stored at nodes	
 codedBlocks=[]
@@ -29,7 +30,7 @@ def LDPCMatrix(N,k,d,PCMatrix):
 	index=[i for i in range(0,k)]
 	IstartCoeff=k #column number from where Idendity matrix starts
 	for i in range (0,N-k):
-		PCColumn=[i]
+		PCColumn=[i+1+10000] #assigning index to each intermediate level coded block
 		for j in range (0, d-1):
 			flag=1
 			while(flag==1):
@@ -38,15 +39,6 @@ def LDPCMatrix(N,k,d,PCMatrix):
 				if(SumC[a]==2):
 					index.remove(a)
 					flag=1	
-				# if(SumC[a]==1):
-				# 	count1+=1
-				# 	if(count1>((N-k)/5)*2):
-				# 		# print("yes")
-				# 		flag=1
-				# # elif(SumC[a]<2):
-				# 	count2+=1
-				# 	if(count2>((N-k)/5)*3):
-				# 		flag=1
 			PCColumn+=[a]
 			SumC[a]+=1
 			SumR[i]+=1
@@ -72,13 +64,9 @@ def LTCodeDistribution(N):
 	su=0.0
 	for i in range(0,len(probabilities)):
 		if(i<=12):
-			# probabilities[i]='{:<020}'.format(probabilities[i])
-			# print(probabilities[i])
 			su+=(probabilities[i])
 		else:
 			break
-	# print ("prob",probabilities)
-	print(su)
 	return probabilities
 
 #returns the value d for a block i.e degree for any block
@@ -104,37 +92,63 @@ def getIndex(deg,blocksN):
 	indexes= random.choices(range(blocksN), k=deg)
 	return indexes
 
-def encoder():
+def encoder(NodeNo):
 	N=12500.0
 	c=10.0 #for starge saving = 500
 	
-	#######LDPC Encoder.
+	#############  LDPC Encoder  ################
 	PCMatrix=[]
-	LDPCMatrix(12500, 10000, 8,PCMatrix)
+	LDPCMatrix(12500, 10000, 8, PCMatrix)
 	IntermediateBlocks=[]
 	for i in range (0,len(PCMatrix)):
 		IntermediateBlocks+=[PCMatrix[i]]
+	# print(IntermediateBlocks)
+	with open("Final Encoded Blocks.csv", "a") as f:
+		f.write("Node Number" + str(NodeNo))
+		f.write("\n")
+		f.write("," + "IntermediateBlocks")
+		f.write("\n")
+		for i in range(0,len(IntermediateBlocks)):
+			f.write(",")
+			for j in range(0,len(IntermediateBlocks[i])):
+				f.write("," + str(IntermediateBlocks[i][j]))
+			f.write("\n")
 
-	print(IntermediateBlocks)
+		
+		############## LT Encoder  ################
+		
+		#writing of coded blocks in file
+		f.write("," + "Coded Blocks")
+		f.write("\n")		
 
-	#########LT Encoder
-	
-	#Each index i here represents index from intermediate blocks + k original blocks
-	deg = getDegrees(N,c)
-	# print ("deg",deg, "length", len(deg)) 
-	for i in range(int(c)):
-		indexes=getIndex(deg[i],12500)
-		# print ("index",indexes)
-		codedBlock=codedBlockStruct(deg[i],indexes,0)
-		# codedBlock.data=blocks[indexes[0]]
-		# for j in range(1,deg):
-		# 	codedBlock.data= codedBlock.data^blocks[j]
+		#Each index i here represents index from intermediate blocks + k original blocks
+		deg = getDegrees(N,c)
+		# print ("deg",deg, "length", len(deg)) 
+		for i in range(int(c)):
+			indexes=getIndex(deg[i],12500)
+			# print ("index",indexes)
+			codedBlock=codedBlockStruct(deg[i],indexes,0)
+			# codedBlock.data=blocks[indexes[0]]
+			# for j in range(1,deg):
+			# 	codedBlock.data= codedBlock.data^blocks[j]
 
-		# codedBlocks += codedBlock
+			#i writes the index of coded block
+			f.write("," + "," + str(i+1))
+			for i in range(0, len(codedBlock.neighbours)):
+				f.write("," + str(codedBlock.neighbours[i]))
+			f.write("\n")
 
-	return codedBlocks
-encoder()
+# print(codedBlocks)	
 
+T=2000
+while(T):
+	print(T)
+	encoder(T)
+	T-=1
+
+
+
+########### Decoding ##############
 def removeDegree(block, codedBlocks):
 	for codedBlock in codedBlocks:
 		for neighbour in codedBlock.neighbours:
