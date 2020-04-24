@@ -28,7 +28,7 @@ def LDPCMatrix(N,k,d,PCMatrix):
 	count1=0
 	count2=0
 	index=[i for i in range(0,k)]
-	IstartCoeff=k #column number from where Idendity matrix starts
+	IstartCoeff=k+1 #column number from where Idendity matrix starts
 	for i in range (0,N-k):
 		PCColumn=[i+1+10000] #assigning index to each intermediate level coded block
 		for j in range (0, d-1):
@@ -103,10 +103,10 @@ def encoder(NodeNo):
 	for i in range (0,len(PCMatrix)):
 		IntermediateBlocks+=[PCMatrix[i]]
 	# print(IntermediateBlocks)
-	with open("Final Encoded Blocks.csv", "a") as f:
-		f.write("Node Number" + str(NodeNo))
+	with open("Final Encoded Blocks.csv", "w+") as f:
+		f.write("Node Number"+ "," + str(NodeNo))
 		f.write("\n")
-		f.write("," + "IntermediateBlocks")
+		f.write("," + "IntermediateBlocks" + " " + str(NodeNo))#Nodeno, for decoding purpose
 		f.write("\n")
 		for i in range(0,len(IntermediateBlocks)):
 			f.write(",")
@@ -118,7 +118,7 @@ def encoder(NodeNo):
 		############## LT Encoder  ################
 		
 		#writing of coded blocks in file
-		f.write("," + "Coded Blocks")
+		f.write("," + "Coded Blocks" + " " + str(NodeNo))#Nodeno, for decoding purpose
 		f.write("\n")		
 
 		#Each index i here represents index from intermediate blocks + k original blocks
@@ -137,18 +137,28 @@ def encoder(NodeNo):
 			for i in range(0, len(codedBlock.neighbours)):
 				f.write("," + str(codedBlock.neighbours[i]))
 			f.write("\n")
-
+	f.close()
 # print(codedBlocks)	
 
-T=2000
-while(T):
-	print(T)
-	encoder(T)
-	T-=1
+############## Call Encoder Function ##################
+# T=1
+# while(T):
+# 	print(T)
+# 	encoder(T)
+# 	T-=1
+
 
 
 
 ########### Decoding ##############
+def downloadBlocks(T):
+	NodeNo=T
+	DownloadedBlocksNo=16667 # k(1+epsilon) to be downloaded
+	DownloadedBlockNodeIndexes = random.choices(range(1,NodeNo),k=DownloadedBlocksNo)
+	# print(DownloadedBlockNodeIndexes)
+	return(DownloadedBlockNodeIndexes)
+# downloadBlocks(2002)
+
 def removeDegree(block, codedBlocks):
 	for codedBlock in codedBlocks:
 		for neighbour in codedBlock.neighbours:
@@ -156,20 +166,80 @@ def removeDegree(block, codedBlocks):
 				codedBlock=codedBlock^block
 				codedBlock.degree-=1
 
-def decoder(codedBlocks,N,D):
+def decoder(N,D):
 	recoveredBlocks=0
 	downloadedBlocks=D
 	originalBlocks=[]
-	while recoveredBlocks<N or downloadedBlocks>0:
-		for codedBlock in codedBlocks:
+	IntermediateBlocks=[]
+	codedBlocks=[]
+	DownloadedBlockNodeIndexes=downloadBlocks(2002)
+	with open("Final Encoded Blocks.csv", "r") as f:
+		reader = csv.reader(f)
+		flag=0
+		for row in reader:
+			if(flag==0):
+				for i in range(0,len(row)):
+					if("Node Number" in row[i]):
+						i+=1
+						for index in DownloadedBlockNodeIndexes:
+							if(str(index)==str(row[i])):
+								flag=1
+			if(flag==1):
+				T=2500
+				row=next(reader)
+				while(T):
+					row=next(reader)					
+					IntermediateBlocks+=[row[3:]]
+					T-=1
+				T=10
+				row=next(reader)
+				while(T):
+					row=next(reader)
+					codedBlocks+=[row[3:]]
+					T-=1
+				recoveredBlocks=LTDecoder(codedBlocks)
+				flag=0
+	
 
-			if(codedBlock.degree==1):
-				downloadedBlocks-=1
-				if(codedBlock.header == header):  #To DO retrieve headers
-					recoveredBlocks+=1
-					originalBlocks+=codedBlock
-					removeDegree(codedBlock, codedBlocks)
-				else:
-					#to make it marks as a malicious nodes
-					codedBlock.flag=1
-# decoder(codedBlocks,12500,9)
+def LTDecoder(codedBlocks):
+	recoveredBlocks=[]
+	recoveredBlock=None
+	flag=0
+	# print((codedBlocks))
+	while(len(codedBlocks)>1):
+		if(flag==1):
+			break
+		flag=0
+		for blocks in codedBlocks:
+			print(blocks, len(blocks))
+			if(len(blocks)==1):
+				flag=2
+				for block in blocks:
+					recoveredBlock=blocks
+				recoveredBlocks+=[recoveredBlock]
+				codedBlocks.remove(blocks)
+				# XORing the block recovered to make more degree 2 blocks
+				for blocks in codedBlocks:
+					for block in blocks:
+						if(recoveredBlock in blocks):
+							blocks.remove(recoveredBlock)
+		if(flag==0):	
+			# print("Unable to decode all Coded blocks")
+			flag=1
+			# print(recoveredBlocks)
+			break
+		# print(len(codedBlocks))
+	return recoveredBlocks
+	# while recoveredBlocks<N or downloadedBlocks>0:
+	# 	for codedBlock in codedBlocks:
+
+	# 		if(codedBlock.degree==1):
+	# 			downloadedBlocks-=1
+	# 			if(codedBlock.header == header):  #To DO retrieve headers
+	# 				recoveredBlocks+=1
+	# 				originalBlocks+=codedBlock
+	# 				removeDegree(codedBlock, codedBlocks)
+	# 			else:
+	# 				#to make it marks as a malicious nodes
+	# 				codedBlock.flag=1
+decoder(12500,9)
