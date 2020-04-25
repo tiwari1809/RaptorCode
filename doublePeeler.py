@@ -1,7 +1,5 @@
 import math
-# import numpy as np 
 import random
-# from scipy import *
 from random import choices
 import csv
 
@@ -45,10 +43,6 @@ def LDPCMatrix(N,k,d,PCMatrix):
 		PCColumn+=[IstartCoeff]
 		IstartCoeff+=1
 		PCMatrix+=[PCColumn]
-	# for i in range(0,len(SumR)):
-	# 	print(SumR[i], end=" ")
-	# for i in range(0,len(PCMatrix)):
-	# 	print(PCMatrix[i])
 
 
 def LTCodeDistribution(N):
@@ -71,11 +65,11 @@ def LTCodeDistribution(N):
 
 #returns the value d for a block i.e degree for any block
 def getDegrees(N,c):
-	probabilities= LTCodeDistribution(N)
-
-	blocks = [i for i in range(0,int(N))]
 	#c=droplet quantity
 	#N=k+p
+	
+	probabilities= LTCodeDistribution(N)
+	blocks = [i for i in range(0,int(N))]
 	return choices(blocks, weights=probabilities, k=int(c))
 
 
@@ -86,11 +80,12 @@ class codedBlockStruct:
 		self.flag=0 #checks maliciousness of a block
 		# self.data=data
 
+
 #returns indexes for a given block provided degree=d
 def getIndex(deg,blocksN):
-	# random.seed(deg)
 	indexes= random.choices(range(blocksN), k=deg)
 	return indexes
+
 
 def encoder(NodeNo):
 	N=12500.0
@@ -102,50 +97,58 @@ def encoder(NodeNo):
 	IntermediateBlocks=[]
 	for i in range (0,len(PCMatrix)):
 		IntermediateBlocks+=[PCMatrix[i]]
-	# print(IntermediateBlocks)
-	with open("Final Encoded Blocks.csv", "w+") as f:
+	
+	with open("Final Encoded Blocks Test.csv", "a") as f:
 		f.write("Node Number"+ "," + str(NodeNo))
 		f.write("\n")
-		f.write("," + "IntermediateBlocks" + " " + str(NodeNo))#Nodeno, for decoding purpose
+
+		f.write("IntermediateBlocks")#Node No., for decoding purpose
 		f.write("\n")
+		
 		for i in range(0,len(IntermediateBlocks)):
-			f.write(",")
 			for j in range(0,len(IntermediateBlocks[i])):
-				f.write("," + str(IntermediateBlocks[i][j]))
+				if(j==len(IntermediateBlocks[i])-1):
+					f.write(str(IntermediateBlocks[i][j]))	
+				else:
+					f.write(str(IntermediateBlocks[i][j]) + ",")
 			f.write("\n")
 
 		
 		############## LT Encoder  ################
 		
 		#writing of coded blocks in file
-		f.write("," + "Coded Blocks" + " " + str(NodeNo))#Nodeno, for decoding purpose
+		f.write("Coded Blocks")#Node No., for decoding purpose
 		f.write("\n")		
 
 		#Each index i here represents index from intermediate blocks + k original blocks
 		deg = getDegrees(N,c)
-		# print ("deg",deg, "length", len(deg)) 
 		for i in range(int(c)):
 			indexes=getIndex(deg[i],12500)
-			# print ("index",indexes)
 			codedBlock=codedBlockStruct(deg[i],indexes,0)
+
+			###### If handling bitcoin blocks #########
 			# codedBlock.data=blocks[indexes[0]]
 			# for j in range(1,deg):
 			# 	codedBlock.data= codedBlock.data^blocks[j]
+			############################################
 
 			#i writes the index of coded block
-			f.write("," + "," + str(i+1))
+			f.write(str(i+1)+ ",")
 			for i in range(0, len(codedBlock.neighbours)):
-				f.write("," + str(codedBlock.neighbours[i]))
+				if(i==len(codedBlock.neighbours)-1):
+					f.write(str(codedBlock.neighbours[i]))
+				else:
+					f.write(str(codedBlock.neighbours[i]) + ",")
 			f.write("\n")
 	f.close()
-# print(codedBlocks)	
+
 
 ############## Call Encoder Function ##################
-# T=1
+# T=10
 # while(T):
-# 	print(T)
 # 	encoder(T)
 # 	T-=1
+# print("Done")
 
 
 
@@ -155,9 +158,7 @@ def downloadBlocks(T):
 	NodeNo=T
 	DownloadedBlocksNo=16667 # k(1+epsilon) to be downloaded
 	DownloadedBlockNodeIndexes = random.choices(range(1,NodeNo),k=DownloadedBlocksNo)
-	# print(DownloadedBlockNodeIndexes)
 	return(DownloadedBlockNodeIndexes)
-# downloadBlocks(2002)
 
 def removeDegree(block, codedBlocks):
 	for codedBlock in codedBlocks:
@@ -167,15 +168,18 @@ def removeDegree(block, codedBlocks):
 				codedBlock.degree-=1
 
 def decoder(N,D):
-	recoveredBlocks=0
+	recoveredBlocks=set()
 	downloadedBlocks=D
 	originalBlocks=[]
 	IntermediateBlocks=[]
 	codedBlocks=[]
-	DownloadedBlockNodeIndexes=downloadBlocks(2002)
+	DownloadedBlockNodeIndexes=downloadBlocks(2000)
+	# DownloadedBlockNodeIndexes=[1,4,6]
+
 	with open("Final Encoded Blocks.csv", "r") as f:
 		reader = csv.reader(f)
 		flag=0
+		print("Downloading blocks")
 		for row in reader:
 			if(flag==0):
 				for i in range(0,len(row)):
@@ -189,57 +193,79 @@ def decoder(N,D):
 				row=next(reader)
 				while(T):
 					row=next(reader)					
-					IntermediateBlocks+=[row[3:]]
+					IntermediateBlocks+=[row[1:]]
 					T-=1
 				T=10
 				row=next(reader)
 				while(T):
 					row=next(reader)
-					codedBlocks+=[row[3:]]
+					codedBlocks+=[row[1:]]
 					T-=1
-				recoveredBlocks=LTDecoder(codedBlocks)
 				flag=0
-	
+		# print(codedBlocks)
+		print("Decoding Stage I- Initiated")
+		recoveredBlocks=LTDecoder(codedBlocks)
+		# print(recoveredBlocks)
+		print("Decoding Stage II- Initiated")
+		originalBlocks=LDPCDecoder(IntermediateBlocks, recoveredBlocks)
+		print("Number of orginal blocks recovered: ",len(originalBlocks))		
+
+def LDPCDecoder(IntermediateBlocks, recoveredBlocks):
+	count=0
+	NotRecovered=None
+	flag=0
+	originalBlocks=set()
+	# print(recoveredBlocks)
+	for block in recoveredBlocks:
+		if(int(block) <= (10000)):
+			originalBlocks.add(block)
+	# print(len(originalBlocks))
+	while(len(originalBlocks)<(10000)):
+		for blocks in IntermediateBlocks:
+			for block in blocks:
+				if(block not in recoveredBlocks):
+					count+=1
+					NotRecovered=block
+			if(count==1):
+				flag=1
+				recoveredBlocks.add(NotRecovered)
+				if(int(NotRecovered) <= (10000)):
+					originalBlocks.add(NotRecovered)
+		if(flag==0):
+			break
+	return originalBlocks
+		# print(len(originalBlocks))
+
+
+
 
 def LTDecoder(codedBlocks):
-	recoveredBlocks=[]
+	recoveredBlocks=set()
 	recoveredBlock=None
 	flag=0
-	# print((codedBlocks))
+	# print(len(codedBlocks))
 	while(len(codedBlocks)>1):
 		if(flag==1):
 			break
 		flag=0
 		for blocks in codedBlocks:
-			print(blocks, len(blocks))
 			if(len(blocks)==1):
 				flag=2
 				for block in blocks:
-					recoveredBlock=blocks
-				recoveredBlocks+=[recoveredBlock]
+					recoveredBlock=block
+				recoveredBlocks.add((recoveredBlock))
 				codedBlocks.remove(blocks)
+				# print(len(codedBlocks))
+	
 				# XORing the block recovered to make more degree 2 blocks
 				for blocks in codedBlocks:
 					for block in blocks:
 						if(recoveredBlock in blocks):
 							blocks.remove(recoveredBlock)
-		if(flag==0):	
-			# print("Unable to decode all Coded blocks")
+		
+		if(flag==0): #no singleton found	
 			flag=1
-			# print(recoveredBlocks)
 			break
-		# print(len(codedBlocks))
 	return recoveredBlocks
-	# while recoveredBlocks<N or downloadedBlocks>0:
-	# 	for codedBlock in codedBlocks:
-
-	# 		if(codedBlock.degree==1):
-	# 			downloadedBlocks-=1
-	# 			if(codedBlock.header == header):  #To DO retrieve headers
-	# 				recoveredBlocks+=1
-	# 				originalBlocks+=codedBlock
-	# 				removeDegree(codedBlock, codedBlocks)
-	# 			else:
-	# 				#to make it marks as a malicious nodes
-	# 				codedBlock.flag=1
+	
 decoder(12500,9)
