@@ -6,20 +6,20 @@ import csv
 #output to be stored at nodes	
 codedBlocks=[]
 
-	
+"""
 ##############PC MATRIX########################
-#PC matrix is of dimension (N-k)x(N) in standard form it is stored as [P|I],
-#Where P is of dimensions (N-k)x(k) and I is identity matrix of (N-k)x(N-k).
-#We store positions of 1's in PC matrix.
-#First entry of each row in PC matrix represents row number, 
-#thereafter each number represesnts the block identity used, 
-#the last one is fixed(different for each row) as it comes through I.
-###############################################
+PC matrix is of dimension (N-k)x(N) in standard form it is stored as [P|I],
+Where P is of dimensions (N-k)x(k) and I is identity matrix of (N-k)x(N-k).
+We store positions of 1's in PC matrix.
+First entry of each row in PC matrix represents row number, 
+thereafter each number represesnts the block identity used, 
+the last one is fixed(different for each row) as it comes through Identity matrix.
 
-#N-k = No. of parity eqautions.
+#N-k = No. of parity equations.
 #k = input symbols.
 #d = check node's degree, which is constant.
 
+"""
 def LDPCMatrix(N,k,d,PCMatrix):
 	SumC=[0]*(k)
 	SumR=[0]*(N-k)
@@ -46,16 +46,16 @@ def LDPCMatrix(N,k,d,PCMatrix):
 
 
 def LTCodeDistribution(N):
-	epsilon = 2.0/3.0 #for k=10,000 input symbols
-	mhu= (2.0*epsilon + epsilon*epsilon)/4.0 # mhu = eps/2 + (eps/2)^2
-	D=9.0 #max-degree=upperBound((4*(1+eps))/eps) 
+	epsilon = 2/3 #for k=10,000 input symbols
+	mhu= (epsilon/2) + ((epsilon/2)*(epsilon/2)) # mhu = eps/2 + (eps/2)^2
+	D=9 #max-degree=upperBound((4*(1+eps))/eps) 
 
 	#defining coefficients of x^i
-	probabilities = [0.0, mhu/(mhu+1)]
-	probabilities += [1.0/((mhu+1)*((i)*(i-1))) for i in range (2,int(D)+1)]
-	probabilities+=[1.0/((mhu+1)*D)]
-	probabilities += [0.0 for i in range (int(D)+2,int(N))]
-	su=0.0
+	probabilities = [mhu/(mhu+1)]
+	probabilities += [1/((mhu+1)*((i)*(i-1))) for i in range (2,int(D)+1)]
+	probabilities+=[1/((mhu+1)*D)]
+	probabilities += [0 for i in range (int(D)+2,int(N)+1)]
+	su=0
 	for i in range(0,len(probabilities)):
 		if(i<=12):
 			su+=(probabilities[i])
@@ -69,8 +69,8 @@ def getDegrees(N,c):
 	#N=k+p
 	
 	probabilities= LTCodeDistribution(N)
-	blocks = [i for i in range(0,int(N))]
-	return choices(blocks, weights=probabilities, k=int(c))
+	blocks = [i for i in range(1,int(N)+1)]
+	return [1] + choices(blocks, weights=probabilities, k=int(c)-1)
 
 
 class codedBlockStruct: 
@@ -83,13 +83,13 @@ class codedBlockStruct:
 
 #returns indexes for a given block provided degree=d
 def getIndex(deg,blocksN):
-	indexes= random.choices(range(blocksN), k=deg)
+	indexes= random.sample(range(1,int(blocksN)+1), k=deg)
 	return indexes
 
 
 def encoder(NodeNo):
-	N=12500.0
-	c=10.0 #for starge saving = 500
+	N=12500
+	c=10 #for starge saving = 1000
 	
 	#############  LDPC Encoder  ################
 	PCMatrix=[]
@@ -98,7 +98,7 @@ def encoder(NodeNo):
 	for i in range (0,len(PCMatrix)):
 		IntermediateBlocks+=[PCMatrix[i]]
 	
-	with open("Final Encoded Blocks Test.csv", "a") as f:
+	with open("Final Encoded Blocks.csv", "a") as f:
 		f.write("Node Number"+ "," + str(NodeNo))
 		f.write("\n")
 
@@ -144,8 +144,9 @@ def encoder(NodeNo):
 
 
 ############## Call Encoder Function ##################
-# T=10
+# T=6000
 # while(T):
+# 	print(T)
 # 	encoder(T)
 # 	T-=1
 # print("Done")
@@ -156,8 +157,8 @@ def encoder(NodeNo):
 ########### Decoding ##############
 def downloadBlocks(T):
 	NodeNo=T
-	DownloadedBlocksNo=16667 # k(1+epsilon) to be downloaded
-	DownloadedBlockNodeIndexes = random.choices(range(1,NodeNo),k=DownloadedBlocksNo)
+	DownloadedBlocksNo=1667 # k(1+epsilon) to be downloaded
+	DownloadedBlockNodeIndexes = random.sample(range(1,NodeNo +1),k=DownloadedBlocksNo)
 	return(DownloadedBlockNodeIndexes)
 
 def removeDegree(block, codedBlocks):
@@ -173,12 +174,12 @@ def decoder(N,D):
 	originalBlocks=[]
 	IntermediateBlocks=[]
 	codedBlocks=[]
-	DownloadedBlockNodeIndexes=downloadBlocks(2000)
-	# DownloadedBlockNodeIndexes=[1,4,6]
-
+	DownloadedBlockNodeIndexes=downloadBlocks(6000)
+	
 	with open("Final Encoded Blocks.csv", "r") as f:
 		reader = csv.reader(f)
 		flag=0
+		count=0
 		print("Downloading blocks")
 		for row in reader:
 			if(flag==0):
@@ -188,7 +189,9 @@ def decoder(N,D):
 						for index in DownloadedBlockNodeIndexes:
 							if(str(index)==str(row[i])):
 								flag=1
+
 			if(flag==1):
+				count+=1
 				T=2500
 				row=next(reader)
 				while(T):
@@ -202,10 +205,10 @@ def decoder(N,D):
 					codedBlocks+=[row[1:]]
 					T-=1
 				flag=0
-		# print(codedBlocks)
+		print("count: ",count)
+		print("len downloaded blocks", len(codedBlocks))
 		print("Decoding Stage I- Initiated")
 		recoveredBlocks=LTDecoder(codedBlocks)
-		# print(recoveredBlocks)
 		print("Decoding Stage II- Initiated")
 		originalBlocks=LDPCDecoder(IntermediateBlocks, recoveredBlocks)
 		print("Number of orginal blocks recovered: ",len(originalBlocks))		
@@ -216,10 +219,13 @@ def LDPCDecoder(IntermediateBlocks, recoveredBlocks):
 	flag=0
 	originalBlocks=set()
 	# print(recoveredBlocks)
+	print("length of Ist stage uncoded blocks list: ",len(recoveredBlocks))
+	if "" in recoveredBlocks:
+		recoveredBlocks.remove("")
+
 	for block in recoveredBlocks:
 		if(int(block) <= (10000)):
 			originalBlocks.add(block)
-	# print(len(originalBlocks))
 	while(len(originalBlocks)<(10000)):
 		for blocks in IntermediateBlocks:
 			for block in blocks:
@@ -234,8 +240,6 @@ def LDPCDecoder(IntermediateBlocks, recoveredBlocks):
 		if(flag==0):
 			break
 	return originalBlocks
-		# print(len(originalBlocks))
-
 
 
 
@@ -243,20 +247,19 @@ def LTDecoder(codedBlocks):
 	recoveredBlocks=set()
 	recoveredBlock=None
 	flag=0
-	# print(len(codedBlocks))
 	while(len(codedBlocks)>1):
 		if(flag==1):
 			break
 		flag=0
 		for blocks in codedBlocks:
 			if(len(blocks)==1):
+				# print(blocks)
 				flag=2
 				for block in blocks:
 					recoveredBlock=block
 				recoveredBlocks.add((recoveredBlock))
 				codedBlocks.remove(blocks)
-				# print(len(codedBlocks))
-	
+				
 				# XORing the block recovered to make more degree 2 blocks
 				for blocks in codedBlocks:
 					for block in blocks:
