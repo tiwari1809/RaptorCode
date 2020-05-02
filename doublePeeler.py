@@ -3,8 +3,6 @@ import random
 from random import choices
 import csv
 
-#output to be stored at nodes	
-codedBlocks=[]
 
 """
 ##############PC MATRIX########################
@@ -70,7 +68,7 @@ def getDegrees(N,c):
 	
 	probabilities= LTCodeDistribution(N)
 	blocks = [i for i in range(1,int(N)+1)]
-	return [1] + choices(blocks, weights=probabilities, k=int(c)-1)
+	return choices(blocks, weights=probabilities, k=int(c))
 
 
 class codedBlockStruct: 
@@ -128,7 +126,7 @@ def encoder(NodeNo):
 
 			###### If handling bitcoin blocks #########
 			# codedBlock.data=blocks[indexes[0]]
-			# for j in range(1,deg):
+			# for j in range(1,deg):	
 			# 	codedBlock.data= codedBlock.data^blocks[j]
 			############################################
 
@@ -144,9 +142,9 @@ def encoder(NodeNo):
 
 
 ############## Call Encoder Function ##################
-# T=6000
+# T=3000
 # while(T):
-# 	print(T)
+# 	# print(T)
 # 	encoder(T)
 # 	T-=1
 # print("Done")
@@ -155,9 +153,10 @@ def encoder(NodeNo):
 
 
 ########### Decoding ##############
-def downloadBlocks(T):
+def downloadBlocks(T,NoOfNodes):
 	NodeNo=T
-	DownloadedBlocksNo=1667 # k(1+epsilon) to be downloaded
+	DownloadedBlocksNo=NoOfNodes # k(1+epsilon) to be downloaded
+	print("NoOfNodes: ",NoOfNodes)
 	DownloadedBlockNodeIndexes = random.sample(range(1,NodeNo +1),k=DownloadedBlocksNo)
 	return(DownloadedBlockNodeIndexes)
 
@@ -168,13 +167,13 @@ def removeDegree(block, codedBlocks):
 				codedBlock=codedBlock^block
 				codedBlock.degree-=1
 
-def decoder(N,D):
+def decoder(N, NoOfNodes):
 	recoveredBlocks=set()
-	downloadedBlocks=D
+	downloadedBlocks=NoOfNodes
 	originalBlocks=[]
 	IntermediateBlocks=[]
 	codedBlocks=[]
-	DownloadedBlockNodeIndexes=downloadBlocks(6000)
+	DownloadedBlockNodeIndexes=downloadBlocks(3000, NoOfNodes)
 	
 	with open("Final Encoded Blocks.csv", "r") as f:
 		reader = csv.reader(f)
@@ -205,43 +204,65 @@ def decoder(N,D):
 					codedBlocks+=[row[1:]]
 					T-=1
 				flag=0
-		print("count: ",count)
+
 		print("len downloaded blocks", len(codedBlocks))
+		
 		print("Decoding Stage I- Initiated")
 		recoveredBlocks=LTDecoder(codedBlocks)
+		print("Number of Ist stage recovered blocks: ",len(recoveredBlocks))
+		
 		print("Decoding Stage II- Initiated")
-		originalBlocks=LDPCDecoder(IntermediateBlocks, recoveredBlocks)
-		print("Number of orginal blocks recovered: ",len(originalBlocks))		
+		originalBlocks=LDPCDecoder(IntermediateBlocks, recoveredBlocks, NoOfNodes,10000)
+		print("Number of orginal blocks recovered: ",len(originalBlocks))
+	f.close()
+	with open("Bootsrap Cost.csv","a") as f:
+		if(len(originalBlocks)==10000):
+			f.write(str(D))
+			f.write("\n")
 
-def LDPCDecoder(IntermediateBlocks, recoveredBlocks):
+def LDPCDecoder(IntermediateBlocks, recoveredBlocks, NoOfNodes, k):
 	count=0
 	NotRecovered=None
 	flag=0
+	Count=0
 	originalBlocks=set()
 	# print(recoveredBlocks)
-	print("length of Ist stage uncoded blocks list: ",len(recoveredBlocks))
 	if "" in recoveredBlocks:
 		recoveredBlocks.remove("")
 
 	for block in recoveredBlocks:
-		if(int(block) <= (10000)):
+		if(int(block) <= (k)):
 			originalBlocks.add(block)
-	while(len(originalBlocks)<(10000)):
+	print("original before LDPC: ",len(originalBlocks))
+	while(len(originalBlocks)<(k)):
+		flag=0
+		print("intermediate: ",len(IntermediateBlocks))
+		temp=[]
 		for blocks in IntermediateBlocks:
+			count=0
 			for block in blocks:
-				if(block not in recoveredBlocks):
+				if(block in recoveredBlocks):
 					count+=1
 					NotRecovered=block
-			if(count==1):
+			if(count==7):
 				flag=1
 				recoveredBlocks.add(NotRecovered)
-				if(int(NotRecovered) <= (10000)):
+				temp+=blocks
+				if(int(NotRecovered) <= (k)):
 					originalBlocks.add(NotRecovered)
+				# print("orig blocks: ",len(originalBlocks), end=" ")
+				# print(len(originalBlocks),end=" ")
+		if(flag==1):
+			for blocks in temp:
+				IntermediateBlocks.remove(blocks)
+				
+		print("Flag: ",flag)
 		if(flag==0):
+			print("Recalling")
+			# decoder(3000,NoOfNodes+25)
 			break
+	print("Singleton LDPC: ",Count)
 	return originalBlocks
-
-
 
 def LTDecoder(codedBlocks):
 	recoveredBlocks=set()
@@ -260,7 +281,7 @@ def LTDecoder(codedBlocks):
 				recoveredBlocks.add((recoveredBlock))
 				codedBlocks.remove(blocks)
 				
-				# XORing the block recovered to make more degree 2 blocks
+				# XORing the block recovered to make more singelton blocks
 				for blocks in codedBlocks:
 					for block in blocks:
 						if(recoveredBlock in blocks):
@@ -270,5 +291,8 @@ def LTDecoder(codedBlocks):
 			flag=1
 			break
 	return recoveredBlocks
-	
-decoder(12500,9)
+
+T=1
+while(T):
+	decoder(12500,1667)
+	T-=1
