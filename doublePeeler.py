@@ -3,7 +3,6 @@ import random
 from random import choices
 import csv
 
-
 """
 ##############PC MATRIX########################
 PC matrix is of dimension (N-k)x(N) in standard form it is stored as [P|I],
@@ -18,29 +17,51 @@ the last one is fixed(different for each row) as it comes through Identity matri
 #d = check node's degree, which is constant.
 
 """
-def LDPCMatrix(N,k,d,PCMatrix):
-	SumC=[0]*(k)
+
+PCMatrix=[]
+def mod(a):
+	if(a>0):
+		return a
+	else:
+		return -a
+
+def LDPCParityMatrixGenerator(N,k,d):
+	SumC=[0]*(N+1)
 	SumR=[0]*(N-k)
-	count1=0
-	count2=0
-	index=[i for i in range(0,k)]
-	IstartCoeff=k+1 #column number from where Idendity matrix starts
+	countR=0
+	countC=0
+	temp=[]
+	index=[i for i in range(1,N+1)]
+	colWith2=[]
 	for i in range (0,N-k):
-		PCColumn=[i+1+10000] #assigning index to each intermediate level coded block
-		for j in range (0, d-1):
+		countR=0
+		PCRow=[]
+		prevA=N+5	
+		for j in range (0, d):
 			flag=1
 			while(flag==1):
-				a=random.choice(index)
+				col=random.choice(index)
 				flag=0
-				if(SumC[a]==2):
-					index.remove(a)
+				if(SumC[col]==2):
+					colWith2+=[col]
+					index.remove(col)
 					flag=1	
-			PCColumn+=[a]
-			SumC[a]+=1
+				if(col in temp): #to check number of 1's common between two rows
+					countR+=1
+					if(countR>1):
+						flag=1
+			PCRow+=[col]
+			prevA=col
+			SumC[col]+=1
 			SumR[i]+=1
-		PCColumn+=[IstartCoeff]
-		IstartCoeff+=1
-		PCMatrix+=[PCColumn]
+		temp=[]
+		temp+=[PCRow]
+		PCMatrix+=[PCRow]
+	
+	for i in range(0,len(colWith2)-1):
+		if(colWith2[i+1]-colWith2[i]==1):
+			print("commom index in: ", colWith2[i])
+	
 
 
 def LTCodeDistribution(N):
@@ -50,15 +71,17 @@ def LTCodeDistribution(N):
 
 	#defining coefficients of x^i
 	probabilities = [mhu/(mhu+1)]
-	probabilities += [1/((mhu+1)*((i)*(i-1))) for i in range (2,int(D)+1)]
+	probabilities += [1/((mhu+1)*((i)*(i-1))) for i in range (2,D+1)]
 	probabilities+=[1/((mhu+1)*D)]
-	probabilities += [0 for i in range (int(D)+2,int(N)+1)]
+
+	probabilities += [0 for i in range (D+2,N+1)]
 	su=0
 	for i in range(0,len(probabilities)):
 		if(i<=12):
 			su+=(probabilities[i])
 		else:
 			break
+	
 	return probabilities
 
 #returns the value d for a block i.e degree for any block
@@ -84,23 +107,14 @@ def getIndex(deg,blocksN):
 	indexes= random.sample(range(1,int(blocksN)+1), k=deg)
 	return indexes
 
-
-def encoder(NodeNo):
-	N=12500
-	c=10 #for starge saving = 1000
-	
-	#############  LDPC Encoder  ################
-	PCMatrix=[]
-	LDPCMatrix(12500, 10000, 8, PCMatrix)
-	IntermediateBlocks=[]
-	for i in range (0,len(PCMatrix)):
-		IntermediateBlocks+=[PCMatrix[i]]
-	
-	with open("Final Encoded Blocks.csv", "a") as f:
+def writePCMatrix(N,k,d):
+	LDPCParityMatrixGenerator(N,k,d)
+	IntermediateBlocks=PCMatrix
+	with open("Final Encoded Blocks.csv", "w+") as f:
 		f.write("Node Number"+ "," + str(NodeNo))
 		f.write("\n")
 
-		f.write("IntermediateBlocks")#Node No., for decoding purpose
+		f.write("Parity Check Matrix")#Node No., for decoding purpose
 		f.write("\n")
 		
 		for i in range(0,len(IntermediateBlocks)):
@@ -111,9 +125,11 @@ def encoder(NodeNo):
 					f.write(str(IntermediateBlocks[i][j]) + ",")
 			f.write("\n")
 
-		
-		############## LT Encoder  ################
-		
+	f.close()
+	
+
+def LTencoder(N,k,c,NodeNo):
+	with open("Final Encoded Blocks.csv", "a") as f:	
 		#writing of coded blocks in file
 		f.write("Coded Blocks")#Node No., for decoding purpose
 		f.write("\n")		
@@ -142,12 +158,14 @@ def encoder(NodeNo):
 
 
 ############## Call Encoder Function ##################
-# T=3000
-# while(T):
-# 	# print(T)
-# 	encoder(T)
-# 	T-=1
-# print("Done")
+writePCMatrix(12500,10000,8)
+
+T=4000
+while(T):
+	# print(T)
+	LTencoder(12500,10000,10,T)
+	T-=1
+print("Done")
 
 
 
@@ -217,14 +235,13 @@ def decoder(N, NoOfNodes):
 	f.close()
 	with open("Bootsrap Cost.csv","a") as f:
 		if(len(originalBlocks)==10000):
-			f.write(str(D))
+			f.write(str(NoOfNodes))
 			f.write("\n")
 
 def LDPCDecoder(IntermediateBlocks, recoveredBlocks, NoOfNodes, k):
 	count=0
 	NotRecovered=None
 	flag=0
-	Count=0
 	originalBlocks=set()
 	# print(recoveredBlocks)
 	if "" in recoveredBlocks:
@@ -233,35 +250,40 @@ def LDPCDecoder(IntermediateBlocks, recoveredBlocks, NoOfNodes, k):
 	for block in recoveredBlocks:
 		if(int(block) <= (k)):
 			originalBlocks.add(block)
-	print("original before LDPC: ",len(originalBlocks))
+	print("pre LDPC orig block len: ",len(originalBlocks))
 	while(len(originalBlocks)<(k)):
 		flag=0
-		print("intermediate: ",len(IntermediateBlocks))
 		temp=[]
+		print("rec block: ",len(recoveredBlocks))
 		for blocks in IntermediateBlocks:
 			count=0
+			Count=0
 			for block in blocks:
 				if(block in recoveredBlocks):
+					Count+=1
+				if(block not in recoveredBlocks):
 					count+=1
 					NotRecovered=block
-			if(count==7):
+			if(count==1 and Count==7):
 				flag=1
 				recoveredBlocks.add(NotRecovered)
-				temp+=blocks
+				temp+=[blocks]
 				if(int(NotRecovered) <= (k)):
 					originalBlocks.add(NotRecovered)
 				# print("orig blocks: ",len(originalBlocks), end=" ")
 				# print(len(originalBlocks),end=" ")
+		print("flag: ",flag)
 		if(flag==1):
-			for blocks in temp:
-				IntermediateBlocks.remove(blocks)
+			print("temp: ",len(temp))
+			if(len(temp)>0):
+				for blocks in temp:
+					IntermediateBlocks.remove(blocks)
+					print("YES", end=" ")
 				
-		print("Flag: ",flag)
 		if(flag==0):
-			print("Recalling")
+			# print("Recalling")
 			# decoder(3000,NoOfNodes+25)
 			break
-	print("Singleton LDPC: ",Count)
 	return originalBlocks
 
 def LTDecoder(codedBlocks):
@@ -269,13 +291,11 @@ def LTDecoder(codedBlocks):
 	recoveredBlock=None
 	flag=0
 	while(len(codedBlocks)>1):
-		if(flag==1):
-			break
 		flag=0
 		for blocks in codedBlocks:
 			if(len(blocks)==1):
 				# print(blocks)
-				flag=2
+				flag=1
 				for block in blocks:
 					recoveredBlock=block
 				recoveredBlocks.add((recoveredBlock))
@@ -288,11 +308,10 @@ def LTDecoder(codedBlocks):
 							blocks.remove(recoveredBlock)
 		
 		if(flag==0): #no singleton found	
-			flag=1
 			break
 	return recoveredBlocks
 
-T=1
-while(T):
-	decoder(12500,1667)
-	T-=1
+# T=1
+# while(T):
+# 	decoder(12500,650)
+# 	T-=1
