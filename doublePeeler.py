@@ -18,7 +18,6 @@ the last one is fixed(different for each row) as it comes through Identity matri
 
 """
 
-PCMatrix=[]
 def mod(a):
 	if(a>0):
 		return a
@@ -31,6 +30,7 @@ def LDPCParityMatrixGenerator(N,k,d):
 	countR=0
 	countC=0
 	temp=[]
+	PCMatrix=[]
 	index=[i for i in range(1,N+1)]
 	colWith2=[]
 	for i in range (0,N-k):
@@ -61,18 +61,19 @@ def LDPCParityMatrixGenerator(N,k,d):
 	for i in range(0,len(colWith2)-1):
 		if(colWith2[i+1]-colWith2[i]==1):
 			print("commom index in: ", colWith2[i])
-	
+	return PCMatrix
 
 
 def LTCodeDistribution(N):
 	epsilon = 2/3 #for k=10,000 input symbols
 	mhu= (epsilon/2) + ((epsilon/2)*(epsilon/2)) # mhu = eps/2 + (eps/2)^2
-	D=9 #max-degree=upperBound((4*(1+eps))/eps) 
+	D=10 #max-degree=upperBound((4*(1+eps))/eps) 
 
 	#defining coefficients of x^i
-	probabilities = [mhu/(mhu+1)]
-	probabilities += [1/((mhu+1)*((i)*(i-1))) for i in range (2,D+1)]
-	probabilities+=[1/((mhu+1)*D)]
+	#used round function to roundoff the last digit for non-terminating decimal
+	probabilities = [round(mhu/(mhu+1),15)]
+	probabilities += [round(1/((mhu+1)*((i)*(i-1))), 15) for i in range (2,D+1)]
+	probabilities+=[round(1/((mhu+1)*D), 15)]
 
 	probabilities += [0 for i in range (D+2,N+1)]
 	su=0
@@ -81,9 +82,9 @@ def LTCodeDistribution(N):
 			su+=(probabilities[i])
 		else:
 			break
-	
+	print(su)
 	return probabilities
-
+	
 #returns the value d for a block i.e degree for any block
 def getDegrees(N,c):
 	#c=droplet quantity
@@ -108,12 +109,9 @@ def getIndex(deg,blocksN):
 	return indexes
 
 def writePCMatrix(N,k,d):
-	LDPCParityMatrixGenerator(N,k,d)
+	PCMatrix= LDPCParityMatrixGenerator(N,k,d)
 	IntermediateBlocks=PCMatrix
 	with open("Final Encoded Blocks.csv", "w+") as f:
-		f.write("Node Number"+ "," + str(NodeNo))
-		f.write("\n")
-
 		f.write("Parity Check Matrix")#Node No., for decoding purpose
 		f.write("\n")
 		
@@ -131,12 +129,12 @@ def writePCMatrix(N,k,d):
 def LTencoder(N,k,c,NodeNo):
 	with open("Final Encoded Blocks.csv", "a") as f:	
 		#writing of coded blocks in file
-		f.write("Coded Blocks")#Node No., for decoding purpose
+		f.write("Coded Blocks" + "," + str(NodeNo))#Node No., for decoding purpose
 		f.write("\n")		
 
 		#Each index i here represents index from intermediate blocks + k original blocks
 		deg = getDegrees(N,c)
-		for i in range(int(c)):
+		for i in range(c):
 			indexes=getIndex(deg[i],12500)
 			codedBlock=codedBlockStruct(deg[i],indexes,0)
 
@@ -158,14 +156,14 @@ def LTencoder(N,k,c,NodeNo):
 
 
 ############## Call Encoder Function ##################
-writePCMatrix(12500,10000,8)
+# writePCMatrix(12500,10000,8)
 
-T=4000
-while(T):
-	# print(T)
-	LTencoder(12500,10000,10,T)
-	T-=1
-print("Done")
+# T=4000
+# while(T):
+# 	# print(T)
+# 	LTencoder(12500,10000,10,T)
+# 	T-=1
+# print("Done")
 
 
 
