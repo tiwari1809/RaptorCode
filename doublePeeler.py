@@ -2,6 +2,7 @@ import math
 import random
 from random import choices
 import csv
+import numpy as np
 
 """
 ##############PC MATRIX########################
@@ -71,20 +72,18 @@ def LTCodeDistribution(N):
 
 	#defining coefficients of x^i
 	#used round function to roundoff the last digit for non-terminating decimal
-	probabilities = [round(mhu/(mhu+1),15)]
-	probabilities += [round(1/((mhu+1)*((i)*(i-1))), 15) for i in range (2,D+1)]
+	probabilities= [round(mhu/(mhu+1),15)]
+	probabilities+=[round(1/((mhu+1)*((i)*(i-1))), 15) for i in range (2,D+1)]
 	probabilities+=[round(1/((mhu+1)*D), 15)]
-
-	probabilities += [0 for i in range (D+2,N+1)]
+	probabilities+=[0 for i in range (D+2,N+1)]
 	su=0
 	for i in range(0,len(probabilities)):
 		if(i<=12):
 			su+=(probabilities[i])
 		else:
 			break
-	print(su)
 	return probabilities
-	
+
 #returns the value d for a block i.e degree for any block
 def getDegrees(N,c):
 	#c=droplet quantity
@@ -132,7 +131,7 @@ def LTencoder(N,k,c,NodeNo):
 		f.write("Coded Blocks" + "," + str(NodeNo))#Node No., for decoding purpose
 		f.write("\n")		
 
-		#Each index i here represents index from intermediate blocks + k original blocks
+		#Each index i here represents index of intermediate blocks and k original blocks.
 		deg = getDegrees(N,c)
 		for i in range(c):
 			indexes=getIndex(deg[i],12500)
@@ -160,7 +159,7 @@ def LTencoder(N,k,c,NodeNo):
 
 # T=4000
 # while(T):
-# 	# print(T)
+# 	print(T)
 # 	LTencoder(12500,10000,10,T)
 # 	T-=1
 # print("Done")
@@ -169,10 +168,10 @@ def LTencoder(N,k,c,NodeNo):
 
 
 ########### Decoding ##############
-def downloadBlocks(T,NoOfNodes):
+def downloadBlocks(T,NoOfNodesToDownload):
 	NodeNo=T
-	DownloadedBlocksNo=NoOfNodes # k(1+epsilon) to be downloaded
-	print("NoOfNodes: ",NoOfNodes)
+	DownloadedBlocksNo=NoOfNodesToDownload # k(1+epsilon) to be downloaded
+	print("NoOfNodes: ",NoOfNodesToDownload)
 	DownloadedBlockNodeIndexes = random.sample(range(1,NodeNo +1),k=DownloadedBlocksNo)
 	return(DownloadedBlockNodeIndexes)
 
@@ -183,13 +182,13 @@ def removeDegree(block, codedBlocks):
 				codedBlock=codedBlock^block
 				codedBlock.degree-=1
 
-def decoder(N, NoOfNodes):
+def decoder(N, k, NoOfNodesToDownload, totalNodes):
 	recoveredBlocks=set()
-	downloadedBlocks=NoOfNodes
+	downloadedBlocks=NoOfNodesToDownload
 	originalBlocks=[]
 	IntermediateBlocks=[]
 	codedBlocks=[]
-	DownloadedBlockNodeIndexes=downloadBlocks(3000, NoOfNodes)
+	DownloadedBlockNodeIndexes=downloadBlocks(totalNodes, NoOfNodesToDownload)
 	
 	with open("Final Encoded Blocks.csv", "r") as f:
 		reader = csv.reader(f)
@@ -197,24 +196,23 @@ def decoder(N, NoOfNodes):
 		count=0
 		print("Downloading blocks")
 		for row in reader:
+			if("Parity Check Matrix" in row):
+				row=next(reader)
+				T=2500
+				while(T):
+					IntermediateBlocks+=[row]
+					T-=1
+
 			if(flag==0):
 				for i in range(0,len(row)):
-					if("Node Number" in row[i]):
+					if("Coded Blocks" in row[i]):
 						i+=1
 						for index in DownloadedBlockNodeIndexes:
 							if(str(index)==str(row[i])):
 								flag=1
 
 			if(flag==1):
-				count+=1
-				T=2500
-				row=next(reader)
-				while(T):
-					row=next(reader)					
-					IntermediateBlocks+=[row[1:]]
-					T-=1
 				T=10
-				row=next(reader)
 				while(T):
 					row=next(reader)
 					codedBlocks+=[row[1:]]
@@ -222,65 +220,48 @@ def decoder(N, NoOfNodes):
 				flag=0
 
 		print("len downloaded blocks", len(codedBlocks))
-		
 		print("Decoding Stage I- Initiated")
 		recoveredBlocks=LTDecoder(codedBlocks)
 		print("Number of Ist stage recovered blocks: ",len(recoveredBlocks))
 		
 		print("Decoding Stage II- Initiated")
-		originalBlocks=LDPCDecoder(IntermediateBlocks, recoveredBlocks, NoOfNodes,10000)
+		originalBlocks=LDPCDecoder(IntermediateBlocks, recoveredBlocks, NoOfNodesToDownload,k)
 		print("Number of orginal blocks recovered: ",len(originalBlocks))
 	f.close()
-	with open("Bootsrap Cost.csv","a") as f:
-		if(len(originalBlocks)==10000):
-			f.write(str(NoOfNodes))
-			f.write("\n")
 
-def LDPCDecoder(IntermediateBlocks, recoveredBlocks, NoOfNodes, k):
+	#######writing bootstrap cost in the file#######
+	# with open("Bootsrap Cost.csv","a") as f:
+	# 	if(len(originalBlocks)==10000):
+	# 		f.write(str(NoOfNodes))
+	# 		f.write("\n")
+
+def LDPCDecoder(IntermediateBlocks, recoveredBlocks, NoOfNodesDownloaded, k):
 	count=0
 	NotRecovered=None
 	flag=0
 	originalBlocks=set()
-	# print(recoveredBlocks)
-	if "" in recoveredBlocks:
-		recoveredBlocks.remove("")
-
+	
 	for block in recoveredBlocks:
 		if(int(block) <= (k)):
 			originalBlocks.add(block)
 	print("pre LDPC orig block len: ",len(originalBlocks))
 	while(len(originalBlocks)<(k)):
 		flag=0
-		temp=[]
-		print("rec block: ",len(recoveredBlocks))
 		for blocks in IntermediateBlocks:
 			count=0
-			Count=0
 			for block in blocks:
-				if(block in recoveredBlocks):
-					Count+=1
 				if(block not in recoveredBlocks):
 					count+=1
 					NotRecovered=block
-			if(count==1 and Count==7):
+			if(count==1):
 				flag=1
 				recoveredBlocks.add(NotRecovered)
-				temp+=[blocks]
 				if(int(NotRecovered) <= (k)):
 					originalBlocks.add(NotRecovered)
-				# print("orig blocks: ",len(originalBlocks), end=" ")
-				# print(len(originalBlocks),end=" ")
-		print("flag: ",flag)
-		if(flag==1):
-			print("temp: ",len(temp))
-			if(len(temp)>0):
-				for blocks in temp:
-					IntermediateBlocks.remove(blocks)
-					print("YES", end=" ")
 				
 		if(flag==0):
 			# print("Recalling")
-			# decoder(3000,NoOfNodes+25)
+			# decoder(3000,NoOfNodesDownloaded+25)
 			break
 	return originalBlocks
 
@@ -308,6 +289,7 @@ def LTDecoder(codedBlocks):
 		if(flag==0): #no singleton found	
 			break
 	return recoveredBlocks
+decoder(12500, 10000, 1, 1)
 
 # T=1
 # while(T):
