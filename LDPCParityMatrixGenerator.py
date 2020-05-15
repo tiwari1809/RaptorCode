@@ -13,6 +13,9 @@ the last one is fixed(different for each row) as it comes through Identity matri
 #k = input symbols.
 #d = check node's degree, which is constant.
 
+
+Degree distribution used (2x +3x^2)/5
+
 """
 
 def mod(a):
@@ -21,41 +24,75 @@ def mod(a):
 	else:
 		return -a
 
+def constructBinaryMatrix(matrix,PCMatrix):
+	for i in range(0,len(PCMatrix)):
+		for j in range(0,len(PCMatrix[i])):
+			matrix[i][PCMatrix[i][j]]=1
+
+def checkValidColumn(matrix,PCMatrix):
+	constructBinaryMatrix(matrix,PCMatrix)	
+	tMatrix= np.transpose(matrix)
+	for i in range(0,len(tMatrix)):
+		count=0
+		for j in range(0,len(tMatrix[i])-1):
+			if(tMatrix[i][j]==1 and tMatrix[i][j+1]==1):
+				count+=1
+			if(count>1):
+				print("col 1: ",j, " " ,"col 2: ",j+1, end=" ")
+
 def LDPCParityMatrixGenerator(N,k,checkNodeDegree):
-	SumC=[0]*(N+1)
+	SumC=[0]*(N)
 	SumR=[0]*(N-k)
-	countR=0
-	countC=0
-	temp=[]
+	prevRow=[]
 	PCMatrix=[]
-	index=[i for i in range(1,N+1)]
-	colWith2=[]
+	zeroDegreeNode=[i for i in range(0,N)]
+	singleDegreeNode=[]
+	doubleDegreeNode=[]
+	matrix=np.zeros(shape=(N-k,N))
 	for i in range (0,N-k):
 		countR=0
 		PCRow=[]
-		prevA=N+5	
 		for j in range (0, checkNodeDegree):
 			flag=1
 			while(flag==1):
-				col=random.choice(index)
+				if(len(singleDegreeNode)>0):
+					col=random.choice(singleDegreeNode)
+				elif(len(zeroDegreeNode)>0):
+					col=random.choice(zeroDegreeNode)
+				else:
+					col=random.choice(doubleDegreeNode)
 				flag=0
-				if(SumC[col]==2):
-					colWith2+=[col]
-					index.remove(col)
+				if(SumC[col]==0):
+					singleDegreeNode+=[col]
+				if(SumC[col]==3):
+					doubleDegreeNode.remove(col)
 					flag=1	
-				if(col in temp): #to check number of 1's common between two rows
+				if(col in prevRow): #to check number of 1's common between two rows
 					countR+=1
 					if(countR>1):
 						flag=1
 			PCRow+=[col]
-			prevA=col
 			SumC[col]+=1
 			SumR[i]+=1
-		temp=[]
-		temp+=[PCRow]
+			if(SumC[col]==2):
+				doubleDegreeNode+=[col]
+				zeroDegreeNode.remove(col)
+			if(SumC[col]==2 and col in singleDegreeNode):
+				singleDegreeNode.remove(col)
+		prevRow=[]
+		prevRow+=[PCRow]
 		PCMatrix+=[PCRow]
+	count=0
+	for s in SumC:
+		if(s==3):
+			count+=1
+	print("Nodes with degree 3: ",count)
+	count=0
+	for s in SumC:
+		if(s==2):
+			count+=1
+	print("Nodes with degree 2: ",count)
 	
-	for i in range(0,len(colWith2)-1):
-		if(mod(colWith2[i+1]-colWith2[i])==1):
-			print("commom index in: ", colWith2[i])
+	checkValidColumn(matrix,PCMatrix)
+
 	return PCMatrix
