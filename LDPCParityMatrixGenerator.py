@@ -25,9 +25,22 @@ def mod(a):
 		return -a
 
 def constructBinaryMatrix(matrix,PCMatrix):
+	SumC=[0]*(12500)
+	SumR=[0]*(2500)
 	for i in range(0,len(PCMatrix)):
 		for j in range(0,len(PCMatrix[i])):
 			matrix[i][PCMatrix[i][j]]=1
+	for i in range(0,len(matrix)):
+		for j in range(0,len(matrix[i])):
+			if(matrix[i][j]==1):
+				SumC[j]+=1
+				SumR[i]+=1
+	for s in SumR:
+		if(s!=13):
+			print("row sum error")
+	for s in SumC:
+		if(s<2 or s>3):
+			print("col sum error")		
 
 def checkValidColumn(matrix,PCMatrix):
 	constructBinaryMatrix(matrix,PCMatrix)	
@@ -55,29 +68,29 @@ def LDPCParityMatrixGenerator(N,k,checkNodeDegree):
 		for j in range (0, checkNodeDegree):
 			flag=1
 			while(flag==1):
-				if(len(singleDegreeNode)>0):
-					col=random.choice(singleDegreeNode)
-				elif(len(zeroDegreeNode)>0):
+				if(len(zeroDegreeNode)>0):
 					col=random.choice(zeroDegreeNode)
+				elif(len(singleDegreeNode)>0):
+					col=random.choice(singleDegreeNode)
 				else:
 					col=random.choice(doubleDegreeNode)
 				flag=0
-				if(SumC[col]==0):
-					singleDegreeNode+=[col]
-				if(SumC[col]==3):
-					doubleDegreeNode.remove(col)
-					flag=1	
-				if(col in prevRow): #to check number of 1's common between two rows
+				if(col in prevRow or col in PCRow): #to check number of 1's common between two rows
 					countR+=1
 					if(countR>1):
 						flag=1
+				if(SumC[col]==0 and flag==0): #this comun will contain one 1 now since it is selected at random.
+					singleDegreeNode+=[col]
+					zeroDegreeNode.remove(col)
+				if(SumC[col]==3 and flag==0):
+					doubleDegreeNode.remove(col)
+					flag=1	
+				
 			PCRow+=[col]
 			SumC[col]+=1
 			SumR[i]+=1
 			if(SumC[col]==2):
 				doubleDegreeNode+=[col]
-				zeroDegreeNode.remove(col)
-			if(SumC[col]==2 and col in singleDegreeNode):
 				singleDegreeNode.remove(col)
 		prevRow=[]
 		prevRow+=[PCRow]
