@@ -38,12 +38,13 @@ def constructBinaryMatrix(matrix,PCMatrix):
 def checkValidColumn(matrix,PCMatrix):
 	constructBinaryMatrix(matrix,PCMatrix)	
 	tMatrix= np.transpose(matrix)
-	for i in range(0,len(tMatrix)):
+	for i in range(0,len(tMatrix)-1):
 		count=0
-		for j in range(0,len(tMatrix[i])-1):
-			if(tMatrix[i][j]==1 and tMatrix[i][j+1]==1):
+		for j in range(0,len(tMatrix[i])):
+			if(tMatrix[i][j]==1 and tMatrix[i+1][j]==1):
 				count+=1
 			if(count>1):
+				print("More than one 1's in common between columns")
 				print("col 1: ",j, " " ,"col 2: ",j+1, end=" ")
 
 def LDPCParityMatrixGenerator(N,k,checkNodeDegree):
@@ -104,7 +105,7 @@ def LDPCParityMatrixGenerator(N,k,checkNodeDegree):
 		if(s!=13):
 			count+=1
 			print("s: ",s)
-	print("row count: ",count)
+	print("No. of check nodes with degree!=13: ",count)
 	
 	checkValidColumn(matrix,PCMatrix)
 
