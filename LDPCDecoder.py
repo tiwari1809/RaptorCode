@@ -12,8 +12,6 @@ def LDPCDecoder(IntermediateBlocks, recoveredBlocks, NoOfNodesDownloaded, k):
 	while(len(originalBlocks)<k):
 		flag=0
 		for blocks in IntermediateBlocks:
-			flag=0
-		for blocks in IntermediateBlocks:
 			count=0
 			for block in blocks:
 				if(block not in recoveredBlocks):
