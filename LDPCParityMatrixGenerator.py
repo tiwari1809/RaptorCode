@@ -13,16 +13,9 @@ the last one is fixed(different for each row) as it comes through Identity matri
 #k = input symbols.
 #d = check node's degree, which is constant.
 
-
-Degree distribution used (2x +3x^2)/5
+Edge Degree distribution: (2x +3x^2)/5
 
 """
-
-def mod(a):
-	if(a>0):
-		return a
-	else:
-		return -a
 
 def constructBinaryMatrix(matrix,PCMatrix):
 	SumC=[0]*(12500)
@@ -58,8 +51,8 @@ def LDPCParityMatrixGenerator(N,k,checkNodeDegree):
 	SumR=[0]*(N-k)
 	prevRow=[]
 	PCMatrix=[]
-	zeroDegreeNode=[i for i in range(0,N)]
-	singleDegreeNode=[]
+	countC=0
+	index=[i for i in range(0,N)]
 	doubleDegreeNode=[]
 	matrix=np.zeros(shape=(N-k,N))
 	for i in range (0,N-k):
@@ -68,20 +61,19 @@ def LDPCParityMatrixGenerator(N,k,checkNodeDegree):
 		for j in range (0, checkNodeDegree):
 			flag=1
 			while(flag==1):
-				if(len(zeroDegreeNode)>0):
-					col=random.choice(zeroDegreeNode)
-				elif(len(singleDegreeNode)>0):
-					col=random.choice(singleDegreeNode)
+				if(len(index)>0):
+					col=random.choice(index)
 				else:
 					col=random.choice(doubleDegreeNode)
 				flag=0
-				if(col in prevRow or col in PCRow): #to check number of 1's common between two rows
+				if(col in prevRow): #to check number of 1's common between two rows
 					countR+=1
 					if(countR>1):
 						flag=1
-				if(SumC[col]==0 and flag==0): #this comun will contain one 1 now since it is selected at random.
-					singleDegreeNode+=[col]
-					zeroDegreeNode.remove(col)
+				if(col in PCRow):
+					flag=1
+				if(SumC[col]==2 and countC>=7500):
+					flag=1
 				if(SumC[col]==3 and flag==0):
 					doubleDegreeNode.remove(col)
 					flag=1	
@@ -91,7 +83,9 @@ def LDPCParityMatrixGenerator(N,k,checkNodeDegree):
 			SumR[i]+=1
 			if(SumC[col]==2):
 				doubleDegreeNode+=[col]
-				singleDegreeNode.remove(col)
+				index.remove(col)
+			if(SumC[col]==3):
+				countC+=1
 		prevRow=[]
 		prevRow+=[PCRow]
 		PCMatrix+=[PCRow]
@@ -105,6 +99,12 @@ def LDPCParityMatrixGenerator(N,k,checkNodeDegree):
 		if(s==2):
 			count+=1
 	print("Nodes with degree 2: ",count)
+	count=0
+	for s in SumR:
+		if(s!=13):
+			count+=1
+			print("s: ",s)
+	print("row count: ",count)
 	
 	checkValidColumn(matrix,PCMatrix)
 
