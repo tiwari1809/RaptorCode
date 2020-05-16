@@ -5,10 +5,9 @@ from LTCodeDegreeDistribution import *
 def getDegrees(N,c):
 	#c=droplet quantity
 	#N=k+p
-	
 	probabilities= LTCodeDegreeDistribution(N)
-	blocks = [i for i in range(1,int(N)+1)]
-	return choices(blocks, weights=probabilities, k=int(c))
+	degree = [i for i in range(0,int(N))] #degree>D is useless as it is 0 in prob. 
+	return choices(degree, weights=probabilities, k=int(c))
 
 
 class codedBlockStruct: 
@@ -20,22 +19,21 @@ class codedBlockStruct:
 
 
 #returns indexes for a given block provided degree=d
-def getIndex(deg,blocksN):
-	indexes= random.sample(range(1,int(blocksN)+1), k=deg)
+def getIndex(deg,N):
+	indexes= random.sample(range(0,int(N)), k=deg)
 	return indexes
 
 	
 
-def LTencoder(N,k,c,NodeNo):
-	with open("test.csv", "a") as f:	
-		#writing of coded blocks in file
-		f.write("Coded Blocks" + "," + str(NodeNo))#Node No., for decoding purpose
+def LTencoder(N,k,c,NodeIdentity):
+	with open("Nodes File.csv", "a") as f:	
+		f.write("Coded Blocks" + "," + str(NodeIdentity))#Node No., for decoding purpose
 		f.write("\n")		
 
 		#Each index i here represents index of intermediate blocks and k original blocks.
 		deg = getDegrees(N,c)
 		for i in range(c):
-			indexes=getIndex(deg[i],12500)
+			indexes=getIndex(deg[i],N)
 			codedBlock=codedBlockStruct(deg[i],indexes,0)
 
 			# If handling bitcoin blocks 
