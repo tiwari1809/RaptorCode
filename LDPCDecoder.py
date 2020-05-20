@@ -1,6 +1,6 @@
 from source import *
 
-def LDPCDecoder(IntermediateBlocks, recoveredBlocks, NoOfNodesDownloaded, k):
+def LDPCDecoder(N,k,IntermediateBlocks, recoveredBlocks):
 	originalBlocks=set()
 	NotRecovered=None
 	
@@ -26,4 +26,6 @@ def LDPCDecoder(IntermediateBlocks, recoveredBlocks, NoOfNodesDownloaded, k):
 				
 		if(flag==0):
 			break
+
+	print("Number of orginal blocks recovered: ",len(originalBlocks))
 	return originalBlocks

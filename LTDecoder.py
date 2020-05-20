@@ -4,11 +4,11 @@ def LTDecoder(codedBlocks):
 	recoveredBlocks=set()
 	recoveredBlock=None
 	flag=0
+	# maliciousBlocks=[]
 	while(len(codedBlocks)>1):
 		flag=0
 		for blocks in codedBlocks:
 			if(len(blocks)==1):
-				# print(blocks)
 				flag=1
 				for block in blocks:
 					recoveredBlock=block
@@ -23,4 +23,7 @@ def LTDecoder(codedBlocks):
 		
 		if(flag==0): #no singleton found	
 			break
+
+	print("Number of Ist stage recovered blocks: ",len(recoveredBlocks))
+
 	return recoveredBlocks

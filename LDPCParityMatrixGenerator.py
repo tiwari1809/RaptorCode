@@ -17,9 +17,9 @@ Edge Degree distribution: (2x +3x^2)/5
 
 """
 
-def constructBinaryMatrix(matrix,PCMatrix):
-	SumC=[0]*(12500)
-	SumR=[0]*(2500)
+def constructBinaryMatrix(N,k,matrix,PCMatrix):
+	SumC=[0]*(N)
+	SumR=[0]*(N-k)
 	for i in range(0,len(PCMatrix)):
 		for j in range(0,len(PCMatrix[i])):
 			matrix[i][PCMatrix[i][j]]=1
@@ -35,8 +35,8 @@ def constructBinaryMatrix(matrix,PCMatrix):
 		if(s<2 or s>3):
 			print("col sum error")		
 
-def checkValidColumn(matrix,PCMatrix):
-	constructBinaryMatrix(matrix,PCMatrix)	
+def checkValidColumn(N,k,matrix,PCMatrix):
+	constructBinaryMatrix(N,k,matrix,PCMatrix)	
 	tMatrix= np.transpose(matrix)
 	for i in range(0,len(tMatrix)-1):
 		count=0
@@ -73,7 +73,7 @@ def LDPCParityMatrixGenerator(N,k,checkNodeDegree):
 						flag=1
 				if(col in PCRow):
 					flag=1
-				if(SumC[col]==2 and countC>=7500):
+				if(SumC[col]==2 and countC>=3*(N/5)):
 					flag=1
 				if(SumC[col]==3 and flag==0):
 					doubleDegreeNode.remove(col)
@@ -107,6 +107,6 @@ def LDPCParityMatrixGenerator(N,k,checkNodeDegree):
 			print("s: ",s)
 	print("No. of check nodes with degree!=13: ",count)
 	
-	checkValidColumn(matrix,PCMatrix)
+	checkValidColumn(N,k,matrix,PCMatrix)
 
 	return PCMatrix

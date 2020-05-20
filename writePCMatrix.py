@@ -1,10 +1,11 @@
 from source import *
 from LDPCParityMatrixGenerator import *
 
-def writePCMatrix(N,k,checkNodeDegree):
+def writePCMatrix(N,k,checkNodeDegree,gamma):
 	PCMatrix= LDPCParityMatrixGenerator(N,k,checkNodeDegree)
 	IntermediateBlocks=PCMatrix
-	with open("test.csv", "w+") as f:
+	fileName="Nodes File Gamma"+ str(gamma)
+	with open("%s.csv" %fileName, "w+") as f:
 		f.write("Parity Check Matrix")#Node No., for decoding purpose
 		f.write("\n")
 		
